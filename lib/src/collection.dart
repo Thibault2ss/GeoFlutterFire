@@ -87,28 +87,34 @@ class GeoFireCollectionRef {
     String centerHash = center.hash.substring(0, precision);
     List<String> area = GeoFirePoint.neighborsOf(hash: centerHash)
       ..add(centerHash);
+    area = Set<String>.from(area).toList();
 
     Iterable<Stream<List<DistanceDocSnapshot>>> queries = area.map((hash) {
       Query tempQuery = _queryPoint(hash, field);
       return _createStream(tempQuery).map((QuerySnapshot querySnapshot) {
-        return querySnapshot.documents.map((element) => DistanceDocSnapshot(element,null)).toList();
+        return querySnapshot.documents
+            .map((element) => DistanceDocSnapshot(element, null))
+            .toList();
       });
     });
 
-    Stream<List<DistanceDocSnapshot>> mergedObservable = mergeObservable(queries);
+    Stream<List<DistanceDocSnapshot>> mergedObservable =
+        mergeObservable(queries);
 
     var filtered = mergedObservable.map((List<DistanceDocSnapshot> list) {
       var mappedList = list.map((DistanceDocSnapshot distanceDocSnapshot) {
         // split and fetch geoPoint from the nested Map
         List<String> fieldList = field.split('.');
-        var geoPointField = distanceDocSnapshot.documentSnapshot.data[fieldList[0]];
+        var geoPointField =
+            distanceDocSnapshot.documentSnapshot.data[fieldList[0]];
         if (fieldList.length > 1) {
           for (int i = 1; i < fieldList.length; i++) {
             geoPointField = geoPointField[fieldList[i]];
           }
         }
         GeoPoint geoPoint = geoPointField['geopoint'];
-        distanceDocSnapshot.distance = center.distance(lat: geoPoint.latitude, lng: geoPoint.longitude);
+        distanceDocSnapshot.distance =
+            center.distance(lat: geoPoint.latitude, lng: geoPoint.longitude);
         return distanceDocSnapshot;
       });
 
@@ -129,9 +135,10 @@ class GeoFireCollectionRef {
     return filtered.asBroadcastStream();
   }
 
-  Stream<List<DistanceDocSnapshot>> mergeObservable(Iterable<Stream<List<DistanceDocSnapshot>>> queries) {
-     Stream<List<DistanceDocSnapshot>> mergedObservable = Rx.combineLatest(queries,
-        (List<List<DistanceDocSnapshot>> originalList) {
+  Stream<List<DistanceDocSnapshot>> mergeObservable(
+      Iterable<Stream<List<DistanceDocSnapshot>>> queries) {
+    Stream<List<DistanceDocSnapshot>> mergedObservable = Rx.combineLatest(
+        queries, (List<List<DistanceDocSnapshot>> originalList) {
       var reducedList = <DistanceDocSnapshot>[];
       originalList.forEach((t) {
         reducedList.addAll(t);

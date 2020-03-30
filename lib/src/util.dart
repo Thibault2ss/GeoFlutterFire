@@ -185,7 +185,7 @@ class Util {
       encodeNeighbor(1, -1)
     ];
 
-    return Set<String>.from(neighborHashList).toList();
+    return neighborHashList;
   }
 
   static int setPrecision(double km) {
